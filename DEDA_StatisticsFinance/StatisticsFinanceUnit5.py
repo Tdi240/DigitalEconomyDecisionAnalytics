@@ -12,7 +12,7 @@ Interactive Graphs
 Plotly enables Python users to create beautiful interactive visualisations.
 """
 # pip install yfinance
-ffrom datetime import datetime, timedelta
+from datetime import datetime, timedelta
 import pandas as pd
 import plotly.graph_objects as go
 import yfinance as yf
@@ -32,37 +32,42 @@ def get_crypto_data(symbol: str, currency: str = CURRENCY) -> pd.DataFrame:
         interval='1d'
     )
     
+    # Flatten multi-index columns if present
+    if isinstance(data.columns, pd.MultiIndex):
+        data.columns = data.columns.get_level_values(0)
+
     return data
 
-# Get BTC data
-btc_data = get_crypto_data('BTC')
+def main():
+    # Get BTC data
+    btc_data = get_crypto_data('BTC')
 
-# Flatten multi-index columns if present - you will know if the plot doesn't show any candles
-if isinstance(btc_data.columns, pd.MultiIndex):
-    btc_data.columns = btc_data.columns.get_level_values(0)
+    # Drop any rows with missing price data
+    btc_data.dropna(subset=['Open', 'High', 'Low', 'Close'], inplace=True)
 
-# Create candlestick chart
-fig = go.Figure(data=[
-    go.Candlestick(
-        x=btc_data.index,
-        close=btc_data['Close'],
-        high=btc_data['High'],
-        low=btc_data['Low'],
-        open=btc_data['Open']
+    # Create candlestick chart
+    fig = go.Figure(data=[
+        go.Candlestick(
+            x=btc_data.index,
+            open=btc_data['Open'],
+            high=btc_data['High'],
+            low=btc_data['Low'],
+            close=btc_data['Close']
+        )
+    ])
+
+    fig.update_layout(
+        title='BTC-EUR Candlestick Chart (1 Year)',
+        xaxis_title='Date',
+        yaxis_title=f'Price ({CURRENCY})',
+        xaxis_rangeslider_visible=True
     )
-])
-"""
-print("Downloaded BTC data:")
-print(btc_data.head())
+    fig.update_yaxes(tickprefix='€')
+     # For scripts, you can use this to save or auto-open in a browser
+    py.plot(fig, filename='btc_candlestick_chart.html', auto_open=True)
 
-print("Null values per column:")
-print(btc_data.isnull().sum())
-
-print("Data shape:", btc_data.shape)
-"""
-
-fig.update_yaxes(tickprefix=CURRENCY)
-fig.show()
+if __name__ == "__main__":
+    main()
 
 """
 Generating numbers in numpy array
